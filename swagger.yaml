@@ -1,0 +1,44 @@
+openapi: 3.0.0
+info:
+  title: myBotConnector
+  description: API to interact with a bot connector that manages conversations.
+  version: "1.0"
+servers:
+  - url: http://localhost:5157/api
+paths:
+  /BotConnector/StartBot:
+    post:
+      summary: Start or continue a bot conversation.
+      description: Sends a message to the bot to either start a new conversation or continue an existing one.
+      operationId: startBot
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                From:
+                  type: string
+                  description: Identifier for the user sending the message.
+                Body:
+                  type: string
+                  description: The content of the message to send to the bot.
+              required:
+                - From
+                - Body
+      responses:
+        '200':
+          description: A successful response from the bot (generic response structure).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: The bot's response message.
+        '400':
+          description: Bad request if the required fields are not provided.
+        '500':
+          description: Internal server error if something goes wrong on the server side.
