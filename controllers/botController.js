@@ -36,8 +36,8 @@ function extractTextFromAdaptiveCard(adaptiveCard) {
 }
 
 async function startBot(req, res) {
-    const { From, Body } = req.body;
-    if (!From || !Body) {
+    const { From: userId, Body } = req.body;
+    if (!userId || !Body) {
         console.log('startBot: Missing required fields');
         return res.status(400).json({ success: false, message: 'Missing required fields: From, Body' });
     }
@@ -50,28 +50,31 @@ async function startBot(req, res) {
             return res.status(401).json({ success: false, message: 'Failed to retrieve bot token' });
         }
 
-        let conversationId = userConversations[From]?.conversationId;
-        let conversationToken = userConversations[From]?.conversationToken;
+        let conversationId = userConversations[userId]?.conversationId;
+        let conversationToken = userConversations[userId]?.conversationToken;
         let response;
 
-        if (conversationId && conversationToken) {
-            console.log(`Reusing conversation ID: ${conversationId}`);
+        const sendMessageToBot = async (conversationId, body, token) => {
             try {
-                response = await botService.sendMessage(conversationId, Body, conversationToken);
+                return await botService.sendMessage(conversationId, userId, body, token);
             } catch (error) {
                 if (error.message.includes('Token not valid for this conversation')) {
                     console.log(`Token not valid for conversation ID: ${conversationId}. Starting a new conversation.`);
                     const newConversation = await botService.startConversation(token);
-                    userConversations[From] = newConversation;
-                    response = await botService.sendMessage(newConversation.conversationId, Body, newConversation.conversationToken);
-                } else {
-                    throw error;
+                    userConversations[userId] = newConversation;
+                    return await botService.sendMessage(newConversation.conversationId, userId, body, newConversation.conversationToken);
                 }
+                throw error;
             }
+        };
+
+        if (conversationId && conversationToken) {
+            console.log(`Reusing conversation ID: ${conversationId}`);
+            response = await sendMessageToBot(conversationId, Body, conversationToken);
         } else {
             const newConversation = await botService.startConversation(token);
-            userConversations[From] = newConversation;
-            response = await botService.sendMessage(newConversation.conversationId, Body, newConversation.conversationToken);
+            userConversations[userId] = newConversation;
+            response = await botService.sendMessage(newConversation.conversationId, userId, Body, newConversation.conversationToken);
             console.log(`Started new conversation ID: ${newConversation.conversationId}`);
         }
 
@@ -82,7 +85,8 @@ async function startBot(req, res) {
             let adaptiveCard = null;
 
             // Regular expression to match and remove citations
-            const citationRegex = /\[\d+\](?:\: cite\:\d+ ".*?")?/g;
+            const citationRegex = /\[\d+\]\s*(:\s*cite:\d+\s*".*?")?\s*\.\s*/g;
+
 
             // Get the last message from the bot
             for (let i = response.activities.length - 1; i >= 0; i--) {
@@ -119,7 +123,7 @@ async function startBot(req, res) {
                         ...submitAction.data,
                         userEmailAddress: Body // Assuming the user email is the Body
                     };
-                    response = await botService.sendSubmitAction(conversationId, submitData, conversationToken);
+                    response = await botService.sendSubmitAction(conversationId, userId, submitData, conversationToken);
                 }
             }
 

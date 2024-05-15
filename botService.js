@@ -43,12 +43,12 @@ class BotService {
             console.log(`Conversation started with ID: ${conversationId}`);
             return { conversationId, conversationToken };
         } catch (error) {
-            console.error('Error starting conversation with bot:', error.response ? error.response.data : error.message);
+            console.error('Error starting conversation with bot:', error.response ? JSON.stringify(error.response.data) : error.message);
             throw new Error('Failed to start conversation: ' + (error.response ? JSON.stringify(error.response.data) : error.message));
         }
     }
 
-    async sendMessage(conversationId, inputMsg, token) {
+    async sendMessage(conversationId, userId, inputMsg, token) {
         if (!token) {
             throw new Error('Token is required to send message');
         }
@@ -62,7 +62,7 @@ class BotService {
         try {
             const messageData = {
                 type: 'message',
-                from: { id: 'userId', name: this.botName },
+                from: { id: userId, name: 'User' }, // Representing the user
                 text: inputMsg
             };
             await axios.post(directLineApiEndpoint, messageData, { headers });
@@ -72,16 +72,16 @@ class BotService {
 
             const getActivityUrl = directLineApiEndpoint;
             const getResponse = await axios.get(getActivityUrl, { headers });
-            console.log('Activities received:', getResponse.data);
+            console.log('Activities received:', JSON.stringify(getResponse.data, null, 2));
 
             return getResponse.data; // This contains all messages exchanged in the conversation
         } catch (error) {
-            console.error('Error sending message to bot:', error.response ? error.response.data : error.message);
+            console.error('Error sending message to bot:', error.response ? JSON.stringify(error.response.data) : error.message);
             throw new Error('Failed to send message: ' + (error.response ? JSON.stringify(error.response.data) : error.message));
         }
     }
 
-    async sendSubmitAction(conversationId, submitData, token) {
+    async sendSubmitAction(conversationId, userId, submitData, token) {
         if (!token) {
             throw new Error('Token is required to send submit action');
         }
@@ -95,7 +95,7 @@ class BotService {
         try {
             const messageData = {
                 type: 'message',
-                from: { id: 'userId', name: this.botName },
+                from: { id: userId, name: 'User' }, // Representing the user
                 value: submitData
             };
             await axios.post(directLineApiEndpoint, messageData, { headers });
@@ -105,11 +105,11 @@ class BotService {
 
             const getActivityUrl = directLineApiEndpoint;
             const getResponse = await axios.get(getActivityUrl, { headers });
-            console.log('Activities received:', getResponse.data);
+            console.log('Activities received:', JSON.stringify(getResponse.data, null, 2));
 
             return getResponse.data; // This contains all messages exchanged in the conversation
         } catch (error) {
-            console.error('Error sending submit action to bot:', error.response ? error.response.data : error.message);
+            console.error('Error sending submit action to bot:', error.response ? JSON.stringify(error.response.data) : error.message);
             throw new Error('Failed to send submit action: ' + (error.response ? JSON.stringify(error.response.data) : error.message));
         }
     }
